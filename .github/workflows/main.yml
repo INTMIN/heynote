@@ -1,0 +1,42 @@
+name: Sync Releases from Upstream
+
+on:
+  schedule:
+    - cron: '0 3 * * *'  # 每天凌晨3点同步一次
+  workflow_dispatch:      # 支持手动触发
+
+jobs:
+  sync-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 获取最新 release 数据
+        uses: actions/github-script@v7
+        id: fetch
+        with:
+          script: |
+            const res = await github.rest.repos.getLatestRelease({
+              owner: 'heyman',
+              repo: 'heynote',
+            });
+            return res.data.assets.map(asset => asset.browser_download_url);
+
+      - name: 下载 Release 文件
+        run: |
+          mkdir -p release_assets
+          urls="${{ steps.fetch.outputs.result }}"
+          urls=$(echo "$urls" | tr -d '[]"')  # 去除括号和引号
+          IFS=',' read -ra url_array <<< "$urls"
+          for url in "${url_array[@]}"; do
+            echo "📦 下载 $url"
+            wget -q -P release_assets "$url"
+          done
+
+      - name: 发布到你自己的 Release 页面
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: synced-$(date +'%Y%m%d')
+          name: Auto Synced Release - $(date +'%Y-%m-%d')
+          body: "自动从上游仓库同步的 Release 文件"
+          files: release_assets/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
