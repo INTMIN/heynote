@@ -34,7 +34,7 @@ jobs:
       - name: 发布到你自己的 Release 页面
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: synced-$(date +'%Y%m%d')
+          tag_name: v$(date +'%Y%m%d-%H%M%S')
           name: Auto Synced Release - $(date +'%Y-%m-%d')
           body: "自动从上游仓库同步的 Release 文件"
           files: release_assets/*
